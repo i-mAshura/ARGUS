@@ -353,11 +353,11 @@ Response:
 
 #### Use Token in Requests
 ```bash
-Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
+Authorization: 
 
 OR
 
-X-API-Key: sk_prod_abc123def456...
+X-API-Key: 
 ```
 
 ### Admin Endpoints
