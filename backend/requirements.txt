@@ -1,0 +1,34 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.12
+asyncpg==0.29.0
+pydantic==2.5.0
+python-dotenv==1.0.0
+redis==5.0.1
+elasticsearch==8.11.0
+numpy==1.26.2
+scikit-learn==1.3.2
+pandas==2.1.3
+requests==2.31.0
+python-telegram-bot>=20.0
+pyyaml==6.0.1
+python-json-logger==2.0.7
+PyJWT==2.8.0
+cryptography==41.0.7
+aiohttp==3.9.1
+websockets==12.0
+prometheus-client==0.19.0
+motor==3.3.2
+stripe>=8.5.0
+aiosqlite>=0.20.0
+pytest-asyncio>=0.23.0
+email-validator>=2.0.0
+# ── Kafka streaming (optional – falls back to in-memory mock if absent) ──────
+aiokafka>=0.9.0
+# ── Velociraptor Threat Hunting (gRPC mTLS) ───────────────────────────────────
+grpcio>=1.59.0
+pyvelociraptor>=0.0.3
+# ── Kasm Remote Browser Isolation API ─────────────────────────────────────────
+httpx>=0.27.0
+bcrypt>=4.0.0

@@ -1,0 +1,361 @@
+version: '3.9'
+
+services:
+  # ==================== BACKEND SERVICES ====================
+  
+  backend-1:
+    image: spyderxdr/backend:latest
+    container_name: spyderxdr-backend-1
+    environment:
+      DATABASE_URL: postgresql://spyderxdr:spyderxdr@postgres-primary:5432/spyderxdr
+      DATABASE_POOL_SIZE: 50
+      REDIS_URL: redis://redis-primary:6379/0
+      REDIS_CLUSTER: "false"
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      LOG_LEVEL: INFO
+      DETECTION_BATCH_SIZE: 500
+      DETECTION_THREADS: 4
+      API_WORKERS: 8
+      AGENT_HOST: agent-manager
+      AGENT_PORT: 55000
+      AGENT_USERNAME: ${AGENT_USERNAME:-admin}
+      AGENT_PASSWORD: ${AGENT_PASSWORD:-SecurePassword}
+      JIRA_URL: ${JIRA_URL:-https://jira.example.com}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN}
+      SERVICENOW_URL: ${SERVICENOW_URL}
+      SERVICENOW_CLIENT_ID: ${SERVICENOW_CLIENT_ID}
+      SERVICENOW_CLIENT_SECRET: ${SERVICENOW_CLIENT_SECRET}
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres-primary
+      - redis-primary
+      - elasticsearch
+      - agent-manager
+    volumes:
+      - ./logs/backend-1:/var/log/spyderxdr
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  backend-2:
+    image: spyderxdr/backend:latest
+    container_name: spyderxdr-backend-2
+    environment:
+      DATABASE_URL: postgresql://spyderxdr:spyderxdr@postgres-primary:5432/spyderxdr
+      DATABASE_POOL_SIZE: 50
+      REDIS_URL: redis://redis-primary:6379/0
+      REDIS_CLUSTER: "false"
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      LOG_LEVEL: INFO
+      DETECTION_BATCH_SIZE: 500
+      DETECTION_THREADS: 4
+      API_WORKERS: 8
+      AGENT_HOST: agent-manager
+      AGENT_PORT: 55000
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres-primary
+      - redis-primary
+      - elasticsearch
+    volumes:
+      - ./logs/backend-2:/var/log/spyderxdr
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend-3:
+    image: spyderxdr/backend:latest
+    container_name: spyderxdr-backend-3
+    environment:
+      DATABASE_URL: postgresql://spyderxdr:spyderxdr@postgres-primary:5432/spyderxdr
+      DATABASE_POOL_SIZE: 50
+      REDIS_URL: redis://redis-primary:6379/0
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      LOG_LEVEL: INFO
+    ports:
+      - "8003:8000"
+    depends_on:
+      - postgres-primary
+      - redis-primary
+      - elasticsearch
+    volumes:
+      - ./logs/backend-3:/var/log/spyderxdr
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ==================== FRONTEND ====================
+  
+  frontend:
+    image: spyderxdr/frontend:latest
+    container_name: spyderxdr-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8001
+      REACT_APP_WS_URL: ws://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-1
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  # ==================== LOAD BALANCER ====================
+  
+  nginx-loadbalancer:
+    image: nginx:latest
+    container_name: spyderxdr-loadbalancer
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend-1
+      - backend-2
+      - backend-3
+      - frontend
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  # ==================== DATABASES ====================
+  
+  postgres-primary:
+    image: postgres:16-alpine
+    container_name: spyderxdr-postgres
+    environment:
+      POSTGRES_DB: spyderxdr
+      POSTGRES_USER: spyderxdr
+      POSTGRES_PASSWORD: spyderxdr
+      POSTGRES_INITDB_ARGS: |
+        -c shared_buffers=2GB
+        -c effective_cache_size=6GB
+        -c maintenance_work_mem=512MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        -c work_mem=10MB
+        -c min_wal_size=1GB
+        -c max_wal_size=4GB
+        -c max_worker_processes=4
+        -c max_parallel_workers_per_gather=2
+        -c max_parallel_workers=4
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spyderxdr"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================== CACHE ====================
+  
+  redis-primary:
+    image: redis:7-alpine
+    container_name: spyderxdr-redis
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================== SEARCH & ANALYTICS ====================
+  
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: spyderxdr-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - cluster.name=spyderxdr
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: curl -s http://localhost:9200 >/dev/null || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: spyderxdr-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: elastic
+      ELASTICSEARCH_PASSWORD: changeme
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  # ==================== AGENT INTEGRATION ====================
+  
+  agent-manager:
+    image: agent/agent:4.7.0
+    container_name: spyderxdr-agent-manager
+    environment:
+      INDEXER_URL: https://elasticsearch:9200
+      INDEXER_USERNAME: admin
+      INDEXER_PASSWORD: SecurePassword123
+      FILEBEAT_SSL_VERIFICATION_MODE: full
+      SSL_CERTIFICATE_AUTHORITIES: /etc/ssl/certs/ca.crt
+      SSL_CERTIFICATE: /etc/ssl/certs/agent.crt
+      SSL_KEY: /etc/ssl/private/agent.key
+      TZ: UTC
+    volumes:
+      - agent_api_logs:/var/ossec/logs
+      - agent_etc:/var/ossec/etc
+      - agent_ruleset:/var/ossec/ruleset
+    ports:
+      - "1514:1514"       # Syslog
+      - "1515:1515"       # Management port
+      - "514:514/udp"     # Syslog UDP
+      - "55000:55000"     # Agent API
+    networks:
+      - spyderxdr-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://localhost:55000/api/v1/manager/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ==================== TICKETING & NOTIFICATION ====================
+  
+  telegram-bot:
+    image: spyderxdr/telegram-bot:latest
+    container_name: spyderxdr-telegram-bot
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID}
+      REDIS_URL: redis://redis-primary:6379/1
+      ALERT_THRESHOLD_CRITICAL: 1
+      ALERT_THRESHOLD_HIGH: 5
+    depends_on:
+      - redis-primary
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  jira-webhook-receiver:
+    image: spyderxdr/jira-integration:latest
+    container_name: spyderxdr-jira-receiver
+    environment:
+      JIRA_URL: ${JIRA_URL}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN}
+      REDIS_URL: redis://redis-primary:6379/2
+    ports:
+      - "8100:8000"
+    depends_on:
+      - redis-primary
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  # ==================== MONITORING & LOGGING ====================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: spyderxdr-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: spyderxdr-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+  # ==================== LOG AGGREGATION ====================
+  
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: spyderxdr-logstash
+    volumes:
+      - ./monitoring/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - "ES_JAVA_OPTS=-Xmx512m -Xms512m"
+    depends_on:
+      - elasticsearch
+    networks:
+      - spyderxdr-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:
+  agent_api_logs:
+  agent_etc:
+  agent_ruleset:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  spyderxdr-network:
+    driver: bridge

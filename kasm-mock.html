@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><title>Kasm Mock Session</title></head>
+<body style="margin:0;background:#0d0e16;color:#e3e4e8;font-family:sans-serif;">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:1rem;">
+    <div style="font-size:48px;">🔒</div>
+    <h2>Kasm Remote Browser Session</h2>
+    <p style="color:#9598a3;">Isolated browser investigating: <strong id="url" style="color:#f05a28;">indicator</strong></p>
+    <div style="border:1px solid #222;border-radius:8px;width:80%;height:60%;background:#000;display:flex;align-items:center;justify-content:center;">
+      <div style="text-align:center;">
+        <div style="font-size:36px;opacity:0.3;">🌐</div>
+        <p style="color:#555;">Remote browser session active</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#00e676;display:inline-block;"></span>
+      <span style="color:#666;font-size:12px;">Kasm Workspaces · Session active</span>
+    </div>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    document.getElementById('url').textContent = params.get('url') || 'unknown';
+  </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+*.cache
+
+# Temporary
+tmp/
+temp/
+*.tmp
+*.tmp.*
+fluentd/*_pos.json*
+
+# Sensitive data
+credentials.json
+secrets.yaml
+*.pem
+*.key
+api_client.yaml
+server.config.yaml
+*.writeback.yaml
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# NUL files (Windows cmd artifact)
+nul
+
+# Distribution
+dist/
+build/
+
+# Cloud config credential file
+cloud_config.json
+
+*.db-journal
+*.db-wal
+*.db-shm

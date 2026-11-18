@@ -1,0 +1,225 @@
+rules:
+  # Signature-based detection rules
+  - id: "sig_001_mimikatz"
+    name: "Mimikatz Execution Detection"
+    description: "Detects Mimikatz privilege escalation tool execution"
+    rule_type: "signature"
+    severity: "critical"
+    is_enabled: true
+    mitre_tactics:
+      - "Credential Access"
+      - "Defense Evasion"
+    mitre_techniques:
+      - "T1003"
+      - "T1140"
+    conditions:
+      match_type: "any"
+      event_type: "process_creation"
+      command_line:
+        operator: "contains"
+        value: "mimikatz"
+      image:
+        operator: "contains"
+        value: "mimikatz"
+
+  - id: "sig_002_psexec"
+    name: "PsExec Execution"
+    description: "Detects PsExec lateral movement tool"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Lateral Movement"
+    mitre_techniques:
+      - "T1570"
+    conditions:
+      match_type: "any"
+      image:
+        operator: "ends_with"
+        value: "psexec.exe"
+
+  - id: "sig_003_cmd_obfuscation"
+    name: "Command Line Obfuscation"
+    description: "Detects obfuscated PowerShell commands"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Defense Evasion"
+    mitre_techniques:
+      - "T1027"
+    conditions:
+      match_type: "all"
+      image:
+        operator: "contains"
+        value: "powershell"
+      command_line:
+        operator: "contains"
+        value: "-e"
+
+  - id: "sig_004_wmic_lateral"
+    name: "WMIC Lateral Movement"
+    description: "Detects WMIC used for lateral movement"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Lateral Movement"
+      - "Execution"
+    mitre_techniques:
+      - "T1570"
+      - "T1047"
+    conditions:
+      match_type: "all"
+      image:
+        operator: "ends_with"
+        value: "wmic.exe"
+      command_line:
+        operator: "contains"
+        value: "/node:"
+
+  - id: "sig_005_reg_persistence"
+    name: "Registry Persistence"
+    description: "Detects registry modifications for persistence"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Persistence"
+    mitre_techniques:
+      - "T1547"
+    conditions:
+      match_type: "all"
+      event_type: "registry_modified"
+      registry_path:
+        operator: "contains"
+        value: "Run"
+
+  - id: "sig_006_certutil_download"
+    name: "Certutil Download Activity"
+    description: "Detects certutil being used for downloads"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Defense Evasion"
+      - "Command and Control"
+    mitre_techniques:
+      - "T1140"
+      - "T1105"
+    conditions:
+      match_type: "all"
+      image:
+        operator: "ends_with"
+        value: "certutil.exe"
+      command_line:
+        operator: "contains"
+        value: "urlcache"
+
+  - id: "sig_007_lsass_dump"
+    name: "LSASS Memory Dump"
+    description: "Detects attempts to dump LSASS credentials"
+    rule_type: "signature"
+    severity: "critical"
+    is_enabled: true
+    mitre_tactics:
+      - "Credential Access"
+    mitre_techniques:
+      - "T1003"
+    conditions:
+      match_type: "any"
+      target_process:
+        operator: "ends_with"
+        value: "lsass.exe"
+      event_type: "process_access"
+
+  - id: "sig_008_data_exfil"
+    name: "Potential Data Exfiltration"
+    description: "Detects large data transfers out of network"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Exfiltration"
+    mitre_techniques:
+      - "T1020"
+    conditions:
+      match_type: "all"
+      event_type: "network_connection"
+      bytes_sent:
+        operator: "greater_than"
+        value: 104857600  # 100MB
+
+  - id: "sig_009_dns_tunnel"
+    name: "DNS Tunneling Detection"
+    description: "Detects DNS tunneling activities"
+    rule_type: "signature"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Command and Control"
+      - "Exfiltration"
+    mitre_techniques:
+      - "T1071"
+    conditions:
+      match_type: "all"
+      event_type: "network_dns"
+      query_count:
+        operator: "greater_than"
+        value: 50
+
+  # Behavioral detection rules
+  - id: "behav_001_suspicious_parent_child"
+    name: "Suspicious Parent-Child Process"
+    description: "Detects suspicious process relationships"
+    rule_type: "behavioral"
+    severity: "high"
+    is_enabled: true
+    mitre_tactics:
+      - "Execution"
+      - "Defense Evasion"
+    mitre_techniques:
+      - "T1059"
+    threshold: 1
+    time_window: 60
+
+  - id: "behav_002_process_injection"
+    name: "Process Injection Detected"
+    description: "Detects process injection attempts"
+    rule_type: "behavioral"
+    severity: "critical"
+    is_enabled: true
+    mitre_tactics:
+      - "Defense Evasion"
+      - "Execution"
+    mitre_techniques:
+      - "T1055"
+    threshold: 1
+    time_window: 300
+
+  # Anomaly detection rules
+  - id: "anom_001_unusual_logon"
+    name: "Unusual Logon Time"
+    description: "User logging in at unusual times"
+    rule_type: "anomaly"
+    severity: "medium"
+    is_enabled: true
+    mitre_tactics:
+      - "Initial Access"
+    mitre_techniques:
+      - "T1078"
+    threshold: 85  # Anomaly score threshold
+    time_window: 3600
+
+  - id: "anom_002_user_behavior_spike"
+    name: "User Activity Spike"
+    description: "Abnormal spike in user activity"
+    rule_type: "anomaly"
+    severity: "medium"
+    is_enabled: true
+    mitre_tactics:
+      - "Exfiltration"
+    mitre_techniques:
+      - "T1020"
+    threshold: 75
+    time_window: 300

@@ -1,0 +1,40 @@
+<Sysmon schemaversion="4.91">
+  <!--
+    SpyderXDR Sysmon Configuration
+    Events with ruledefault="include" are captured automatically.
+    We only need to opt-in to events that are excluded by default.
+    Sysmon 15.20 note: empty exclude blocks crash the parser.
+  -->
+  <EventFiltering>
+
+    <!-- EventID 11: FileCreate — excluded by default, opt in to capture all -->
+    <FileCreate onmatch="include">
+    </FileCreate>
+
+    <!-- EventID 12-14: RegistryEvent — excluded by default, opt in to capture all -->
+    <RegistryEvent onmatch="include">
+    </RegistryEvent>
+
+    <!-- EventID 15: FileCreateStreamHash — excluded by default, opt in -->
+    <FileCreateStreamHash onmatch="include">
+    </FileCreateStreamHash>
+
+    <!-- EventID 17-18: PipeEvent — excluded by default, opt in -->
+    <PipeEvent onmatch="include">
+    </PipeEvent>
+
+    <!-- EventID 19-21: WmiEvent — excluded by default, opt in -->
+    <WmiEvent onmatch="include">
+    </WmiEvent>
+
+    <!-- EventID 22: DnsQuery — excluded by default, opt in to capture all -->
+    <DnsQuery onmatch="include">
+    </DnsQuery>
+
+    <!-- EventID 23: FileDelete — version 5, ruledefault="include" -->
+    <!-- EventID 24: ClipboardChange — version 5, ruledefault="include" -->
+    <!-- EventID 25: ProcessTampering — version 5, ruledefault="include" -->
+    <!-- EventID 26-29: FileDeleteDetected, FileBlockExe, etc. — ruledefault="include" -->
+
+  </EventFiltering>
+</Sysmon>

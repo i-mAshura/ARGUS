@@ -1,0 +1,13 @@
+{
+  "telegram": {
+    "telegram_bot_token": "secret_bot_token_12345",
+    "telegram_chat_id": "-100123456",
+    "configured_at": "2026-06-05T06:16:03.472357",
+    "status": "configured"
+  },
+  "virustotal": {
+    "api_key": "1ada0048767a7c30e30b2159dc6faa2ed919331c2a1340ae3e90ba2d2de1dd74",
+    "configured_at": "2026-06-05T05:25:10.427273",
+    "status": "configured"
+  }
+}
